@@ -34,7 +34,9 @@ async function Page({ params }: { params: Promise<{ locale: string }> }) {
 			secretIdCol: providerSecrets.secretId,
 		}),
 	]);
-	const userIdentities = await fetchUserIdentities();
+	const userIdentities = (await fetchUserIdentities()).filter(
+		(row) => row.identities.metaData?.provider !== "kurrier-mail",
+	);
 	const googleAccounts = await fetchGoogleAccounts();
 
 	const options = [];

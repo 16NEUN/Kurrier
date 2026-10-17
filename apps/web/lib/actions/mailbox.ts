@@ -628,9 +628,18 @@ export async function sendMail(
 			decodedForm,
 		);
 
-	return await job.waitUntilFinished(
-		sendMailEvents,
-	);
+	try {
+		return await job.waitUntilFinished(sendMailEvents);
+	} catch (error) {
+		console.error("[sendMail] Send job failed", error);
+		return {
+			success: false,
+			error:
+				error instanceof Error
+					? error.message
+					: "Could not send your email.",
+		};
+	}
 }
 
 export const deltaFetch = async ({

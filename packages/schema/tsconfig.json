@@ -3,7 +3,9 @@
 		"noEmit": true,
 		"paths": {
 			"@db": ["../db/src/index.ts"],
-			"@db/*": ["../db/src/*"]
+			"@db/*": ["../db/src/*"],
+			"@providers": ["../providers/src/index.ts"],
+			"@providers/*": ["../providers/src/*"]
 		}
 	},
 	"exclude": ["node_modules"]

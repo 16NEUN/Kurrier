@@ -392,19 +392,30 @@ function scheduleReconnect(
 async function idleForever(
 	identityId: string,
 	client: ImapFlow,
-) {
+): Promise<void> {
 	console.log(
 		`[realtime:${identityId}] entering idle loop`,
 	);
 
-	while (
+	const shouldContinue = () =>
 		!realtimeShuttingDown &&
 		!stoppedIdentities.has(identityId) &&
 		client.authenticated &&
-		client.usable
-		) {
+		client.usable;
+
+	while (shouldContinue()) {
 		try {
 			await client.idle();
+
+			if (!shouldContinue()) {
+				break;
+			}
+
+			// ImapFlow can resolve immediately when already idling.
+			// Always yield to timers and I/O before trying again.
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 1_000);
+			});
 		} catch (err) {
 			if (
 				!realtimeShuttingDown &&

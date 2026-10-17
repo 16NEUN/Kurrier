@@ -28,6 +28,7 @@ export type DashboardNavItem = {
     path: string;
     icon: IconName;
     ownerOnly?: boolean;
+    order?: number;
 };
 
 export type ExtensionContributions<TComponent = unknown> = {

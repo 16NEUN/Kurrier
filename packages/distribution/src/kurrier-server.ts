@@ -1,4 +1,4 @@
-import type { HookMap, HookName } from "@schema";
+import type {HookHandler, HookMap, HookName} from "@schema";
 import {
     ExtensionScheduler,
     type ExtensionWorker,
@@ -18,7 +18,7 @@ export type KurrierServer = {
         run<K extends HookName>(
             name: K,
             context: HookMap[K],
-        ): Promise<void>;
+        ): Promise<Awaited<ReturnType<HookHandler<K>>> | undefined>;
     };
 
     jobs: {
@@ -44,10 +44,9 @@ export const kurrierServer: KurrierServer = {
         async run<K extends HookName>(
             name: K,
             context: HookMap[K],
-        ): Promise<void> {
+        ): Promise<Awaited<ReturnType<HookHandler<K>>> | undefined> {
             registerServerExtensions();
-
-            await hooks.run(name, context);
+            return await hooks.run(name, context);
         },
     },
 

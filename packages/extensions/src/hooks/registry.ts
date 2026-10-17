@@ -28,16 +28,24 @@ export const hooks = {
     async run<K extends HookName>(
         name: K,
         context: HookMap[K],
-    ): Promise<void> {
-        const hookHandlers = handlers.get(name);
+    ): Promise<Awaited<ReturnType<HookHandler<K>>> | undefined> {
+        const hookHandlers = handlers.get(name) as
+            | Set<HookHandler<K>>
+            | undefined;
 
         if (!hookHandlers) {
-            return;
+            return undefined;
         }
 
         for (const handler of hookHandlers) {
-            await handler(context);
+            const result = await handler(context);
+
+            if (result !== undefined) {
+                return result as Awaited<ReturnType<HookHandler<K>>>;
+            }
         }
+
+        return undefined;
     },
 
     clear(name?: HookName): void {

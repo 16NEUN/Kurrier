@@ -3,7 +3,7 @@ import {
 	AddressObjectJSON,
 	ComposeMode,
 	getServerEnv,
-	MailComposeInput,
+	MailComposeInput, MailSendInput,
 } from "@schema";
 import { getMessageAddress, getMessageName } from "@common/mail-client";
 import { generateSnippet, upsertMailboxThreadItem } from "@common";
@@ -29,13 +29,13 @@ import {
 	jmapAccounts,
 } from "@db";
 import { createMailer } from "@providers";
-import { toArray } from "drizzle-orm/mysql-core";
 import { and, eq } from "drizzle-orm";
 import addressparser from "addressparser";
 import { getRedis } from "../../lib/get-redis";
 import {GetObjectCommand, PutObjectCommand} from "@aws-sdk/client-s3";
 import {s3} from "../../lib/create-s3-client";
 import MailComposer from "nodemailer/lib/mail-composer/index.js";
+import {kurrierServer} from "@distribution/kurrier-server";
 const connection = {
 	maxRetriesPerRequest: null,
 	password: serverConfig.REDIS_PASSWORD,
@@ -63,9 +63,6 @@ export default defineNitroPlugin(async (nitroApp) => {
 				case "send-scheduled-draft":
 					await processDraft(job.data);
 					return { success: true };
-				// case "send-and-reconcile":
-				// 	await send(job.data);
-				// 	return { success: true };
 				case "send-and-reconcile": {
 					const result = await send(job.data);
 					if (!result.success) {
@@ -166,8 +163,10 @@ export default defineNitroPlugin(async (nitroApp) => {
 		if (claimed.length === 0) return;
 
 		try {
-			await send(draft.payload);
-
+			const result = await send(draft.payload);
+			if (!result.success) {
+				throw new Error(result.error ?? "Failed to send email");
+			}
 			await db
 				.update(draftMessages)
 				.set({ status: "sent", updatedAt: new Date() })
@@ -190,7 +189,9 @@ export default defineNitroPlugin(async (nitroApp) => {
 	};
 
 	const send = async (decodedForm: Record<any, unknown>) => {
-		return await db.transaction(async (tx) => {
+		let messageIdToIndex: string | undefined;
+
+		const result = await db.transaction(async (tx) => {
 			const [mailbox] = await tx
 				.select({
 					mailbox: mailboxes,
@@ -204,95 +205,120 @@ export default defineNitroPlugin(async (nitroApp) => {
 				.leftJoin(smtpAccounts, eq(identities.smtpAccountId, smtpAccounts.id))
 				.where(eq(mailboxes.id, String(decodedForm.sentMailboxId)));
 
-			if (!mailbox) {
-				throw new Error("Mailbox not found");
+			if (!mailbox || !mailbox.identity) {
+				throw new Error("Mailbox or identity not found");
 			}
 
-			const providerType =
-				mailbox.provider?.type ?? "smtp";
+			const sendWithConnectedProvider = async (
+				input: MailSendInput,
+			) => {
+				const providerType = mailbox.provider?.type ?? "smtp";
+				let credentials: Record<string, unknown>;
 
-			let credentials: Record<string, unknown>;
-
-			if (providerType === "jmap") {
-				const [jmapAccount] = await tx
-					.select()
-					.from(jmapAccounts)
-					.where(
-						and(
-							eq(
-								jmapAccounts.identityId,
-								mailbox.identity.id,
+				if (providerType === "jmap") {
+					const [jmapAccount] = await tx
+						.select()
+						.from(jmapAccounts)
+						.where(
+							and(
+								eq(
+									jmapAccounts.identityId,
+									mailbox.identity.id,
+								),
+								eq(
+									jmapAccounts.workspaceId,
+									mailbox.identity.workspaceId,
+								),
 							),
-							eq(
-								jmapAccounts.workspaceId,
-								mailbox.identity.workspaceId,
-							),
-						),
-					)
-					.limit(1);
+						)
+						.limit(1);
 
-				if (!jmapAccount) {
-					throw new Error(
-						"JMAP account not found for identity",
+					if (!jmapAccount) {
+						throw new Error(
+							"JMAP account not found for identity",
+						);
+					}
+
+					const { vault } = await getSecretAdmin(
+						jmapAccount.tokenSecretId,
 					);
+
+					credentials = {
+						token: vault.decrypted_secret,
+						sessionUrl: jmapAccount.sessionUrl,
+						accountId: jmapAccount.accountId,
+						username: jmapAccount.username,
+					};
+				} else {
+					const [secrets] = mailbox.identity.providerId
+						? await decryptAdminSecrets({
+							linkTable: providerSecrets,
+							foreignCol: providerSecrets.providerId,
+							secretIdCol: providerSecrets.secretId,
+							ownerId: mailbox.identity.ownerId,
+							parentId: String(
+								mailbox.identity.providerId,
+							),
+						})
+						: await decryptAdminSecrets({
+							linkTable: smtpAccountSecrets,
+							foreignCol: smtpAccountSecrets.accountId,
+							secretIdCol: smtpAccountSecrets.secretId,
+							ownerId: mailbox.identity.ownerId,
+							parentId: String(
+								mailbox.identity.smtpAccountId,
+							),
+						});
+
+					credentials = secrets?.vault?.decrypted_secret
+						? JSON.parse(secrets.vault.decrypted_secret)
+						: {};
 				}
 
-				const { vault } = await getSecretAdmin(
-					jmapAccount.tokenSecretId,
+				return createMailer(providerType, credentials).sendEmail(
+					input.to,
+					input.opts,
 				);
-
-				credentials = {
-					token: vault.decrypted_secret,
-					sessionUrl: jmapAccount.sessionUrl,
-					accountId: jmapAccount.accountId,
-					username: jmapAccount.username,
-				};
-			} else {
-				const [secrets] = mailbox.identity.providerId
-					? await decryptAdminSecrets({
-						linkTable: providerSecrets,
-						foreignCol: providerSecrets.providerId,
-						secretIdCol: providerSecrets.secretId,
-						ownerId: mailbox.identity.ownerId,
-						parentId: String(
-							mailbox.identity.providerId,
-						),
-					})
-					: await decryptAdminSecrets({
-						linkTable: smtpAccountSecrets,
-						foreignCol: smtpAccountSecrets.accountId,
-						secretIdCol: smtpAccountSecrets.secretId,
-						ownerId: mailbox.identity.ownerId,
-						parentId: String(
-							mailbox.identity.smtpAccountId,
-						),
-					});
-
-				credentials =
-					secrets?.vault?.decrypted_secret
-						? JSON.parse(
-							secrets.vault.decrypted_secret,
-						)
-						: {};
-			}
-
-			const mailer = createMailer(
-				providerType,
-				credentials,
-			);
-
-			//
+			};
 
 
 			const attachmentBlobs = await fetchAttachmentBlobs(
 				decodedForm.attachments as string,
 			);
 
+			function recipientArray(
+				value: unknown,
+				field: string,
+			): string[] {
+				if (
+					value === undefined ||
+					value === null ||
+					(typeof value === "string" && !value.trim())
+				) {
+					return [];
+				}
+
+				const entries = Array.isArray(value) ? value : [value];
+
+				return entries.map((entry, index) => {
+					if (
+						typeof entry !== "string" ||
+						!entry.trim()
+					) {
+						throw new Error(
+							`Invalid ${field} recipient at index ${index}`,
+						);
+					}
+
+					return entry.trim();
+				});
+			}
+
 			const data: MailComposeInput = {
 				messageId: String(decodedForm.messageId ?? ""),
-				to: toArray(decodedForm.to as any),
-				cc: toArray(decodedForm.cc as any),
-				bcc: toArray(decodedForm.bcc as any),
+				to: recipientArray(decodedForm.to, "To"),
+				cc: recipientArray(decodedForm.cc, "Cc"),
+				bcc: recipientArray(decodedForm.bcc, "Bcc"),
 				subject: (decodedForm.subject as string) || undefined,
 				text: (decodedForm.text as string) || undefined,
 				html: (decodedForm.html as string) || undefined,
@@ -369,21 +395,45 @@ export default defineNitroPlugin(async (nitroApp) => {
 				newMessageBody.id = String(decodedForm.apiMessageId);
 			}
 
-			const mailerResponse = await mailer.sendEmail(data.to, {
-				from: mailbox.identity.value,
-				cc: data.cc ?? [],
-				bcc: data.bcc ?? [],
-				subject: String(newMessageBody.subject),
-				text: newMessageBody.text ?? "",
-				html: newMessageBody.html ?? "",
-				inReplyTo: inReplyTo ?? "",
-				references: references,
-				attachments: attachmentBlobs.map((att) => ({
-					name: att.name,
-					content: att.blob,
-					contentType: String(att.item.contentType),
-				})),
-			});
+			const input: MailSendInput = {
+				to: data.to,
+				opts: {
+					from: mailbox.identity.value,
+					cc: data.cc ?? [],
+					bcc: data.bcc ?? [],
+					subject: String(newMessageBody.subject),
+					text: newMessageBody.text ?? "",
+					html: newMessageBody.html ?? "",
+					inReplyTo: inReplyTo ?? "",
+					references,
+					attachments: attachmentBlobs.map((attachment) => ({
+						name: attachment.name,
+						content: attachment.blob,
+						contentType: String(attachment.item.contentType),
+					})),
+				},
+			};
+
+			const hookResult = await kurrierServer.hooks.run(
+				"mail.beforeSend",
+				{
+					workspaceId: mailbox.mailbox.workspaceId,
+					identityId: mailbox.identity.id,
+					input,
+				},
+			);
+
+			if (
+				mailbox.identity.metaData?.provider === "kurrier-mail" &&
+				hookResult === undefined
+			) {
+				throw new Error(
+					"Kurrier Mail sending is unavailable for this identity",
+				);
+			}
+
+			const mailerResponse =
+				hookResult ?? await sendWithConnectedProvider(input);
 
 			if (mailerResponse.success) {
 				const parsedMessage = MessageInsertSchema.parse({
@@ -441,20 +491,32 @@ export default defineNitroPlugin(async (nitroApp) => {
 
 				await upsertMailboxThreadItem(newMessage.id, tx);
 
-				const { searchIngestQueue } = await getRedis();
-				await searchIngestQueue.add(
-					"add",
-					{ messageId: newMessage.id },
-					{ removeOnComplete: true },
-				);
-			} else if (mailerResponse.error) {
+				messageIdToIndex = newMessage.id;
+			} else {
 				return {
 					success: false,
-					error: `Failed to send email: ${mailerResponse.error}`,
+					error: `Failed to send email: ${mailerResponse.error ?? "Unknown error"}`,
 				};
 			}
 			return { success: true };
 		});
+
+		if (result.success && messageIdToIndex) {
+			try {
+				const { searchIngestQueue } = await getRedis();
+				await searchIngestQueue.add(
+					"add",
+					{ messageId: messageIdToIndex },
+					{ removeOnComplete: true },
+				);
+			} catch (error) {
+				console.error(
+					"[send-mail] Message saved, but search indexing could not be queued",
+					{ messageId: messageIdToIndex, error },
+				);
+			}
+		}
+		return result;
 	};
 
 	const generateMailAttrs = async ({
@@ -502,7 +564,6 @@ export default defineNitroPlugin(async (nitroApp) => {
 		const origHtml = hasOrig ? origMsg!.html || origMsg!.textAsHtml || "" : "";
 		const origText = hasOrig ? origMsg!.text || "" : "";
 
-		// Subject
 		const baseSubj = (data.subject ?? "").trim();
 		let subject = baseSubj;
 		if (isReply && hasOrig) {
@@ -528,7 +589,6 @@ export default defineNitroPlugin(async (nitroApp) => {
 </blockquote>`
 			: "";
 
-		// Bodies
 		const text = isReply
 			? `${data.text ?? ""}${hasOrig ? `\n\n${quotedText}` : ""}`
 			: isForward
@@ -539,7 +599,7 @@ export default defineNitroPlugin(async (nitroApp) => {
 			? `${data.html ?? ""}${quotedHtml}`
 			: isForward
 				? `${data.html ?? ""}${hasOrig ? `<p>Forwarded message:</p>${quotedHtml}` : ""}`
-				: (data.html ?? ""); // for "new", don't auto-pull orig html
+				: (data.html ?? "");
 
 		return { subject, text, html };
 	};
@@ -560,8 +620,12 @@ export default defineNitroPlugin(async (nitroApp) => {
 		let attachments: unknown = [];
 		try {
 			attachments = attachmentsString ? JSON.parse(attachmentsString) : [];
-		} catch {
-			return [];
+		} catch (error) {
+			console.error("fetchAttachmentBlobs error:", error);
+
+			throw new Error(
+				"Could not load email attachments. Email was not sent. Please try again.",
+			);
 		}
 
 		const list = Array.isArray(attachments) ? attachments : [];
@@ -600,9 +664,11 @@ export default defineNitroPlugin(async (nitroApp) => {
 			);
 
 			return downloads;
-		} catch (e) {
-			console.error("fetchAttachmentBlobs error:", e);
-			return [];
+		} catch (error) {
+			console.error("fetchAttachmentBlobs error:", error);
+			throw new Error(
+				"Could not load email attachments. Email was not sent. Please try again.",
+			);
 		}
 	}
 
