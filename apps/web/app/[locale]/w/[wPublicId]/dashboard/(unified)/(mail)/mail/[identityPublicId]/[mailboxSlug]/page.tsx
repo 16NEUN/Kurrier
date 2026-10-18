@@ -11,6 +11,7 @@ import {
 	fetchMailbox,
 	fetchMailboxThreads,
 } from "@/lib/actions/mailbox";
+import {navigation} from "next/cache";
 
 async function Page({
 	params,
@@ -19,6 +20,7 @@ async function Page({
 	params: { identityPublicId: string; mailboxSlug?: string };
 	searchParams: { page?: string };
 }) {
+	await navigation();
 	const { page } = await searchParams;
 	const { identityPublicId, mailboxSlug } = await params;
 	const publicConfig = getPublicEnv();

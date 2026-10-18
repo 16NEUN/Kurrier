@@ -12,6 +12,7 @@ import {
 	fetchThreadMailSubscriptions,
 	fetchWebMailThreadDetail,
 } from "@/lib/actions/mailbox";
+import {navigation} from "next/cache";
 
 async function Page({
 	params,
@@ -22,6 +23,7 @@ async function Page({
 		threadId: string;
 	}>;
 }) {
+	await navigation();
 	const { threadId, identityPublicId, mailboxSlug } = await params;
 	const [{ activeMailbox, mailboxSync }, activeThread, workspacePublicId] =
 		await Promise.all([

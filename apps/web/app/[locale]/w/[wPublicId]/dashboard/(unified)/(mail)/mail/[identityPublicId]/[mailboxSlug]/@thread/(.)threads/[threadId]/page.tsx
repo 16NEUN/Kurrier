@@ -15,6 +15,7 @@ import {
 	fetchThreadMailSubscriptions,
 	fetchWebMailThreadDetail,
 } from "@/lib/actions/mailbox";
+import { navigation } from "next/cache";
 
 async function ThreadContent({
 	params,
@@ -25,7 +26,8 @@ async function ThreadContent({
 		threadId: string;
 	}>;
 }) {
-	await connection();
+	// await connection();
+	await navigation();
 
 	const { threadId, identityPublicId, mailboxSlug } = await params;
 

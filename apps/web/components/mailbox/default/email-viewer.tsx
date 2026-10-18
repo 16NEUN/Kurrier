@@ -18,169 +18,40 @@ import { useOptionalDictionary } from "@/components/providers/dictionary-provide
 
 const BASE_CSS = `
 :host {
-	--bg: #ffffff;
-	--text: #0f172a;
-	--muted: #475569;
-	--border: #e5e7eb;
-	--quote-bg: #f8fafc;
-	--quote-bar: #cbd5e1;
-
-	display: block;
-	width: 100%;
-	color: var(--text);
+    display: block;
+    width: 100%;
+    min-width: 0;
+    color-scheme: light;
 }
 
 .email-root {
-	width: 100%;
-	min-width: 0;
-	background: var(--bg);
-	color: var(--text);
-	font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-	overflow-wrap: anywhere;
-	word-break: break-word;
+    display: flow-root;
+    min-width: 0;
+    background: #ffffff;
+    color: #0f172a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-.email-root,
-.email-root * {
-	box-sizing: border-box;
-}
-
-.email-root * {
-	max-width: 100%;
-	overflow-wrap: anywhere;
-}
-
-.email-root p {
-	margin: 0 0 0.85em;
-}
-
-.email-root p:last-child {
-	margin-bottom: 0;
-}
-
-.email-root h1,
-.email-root h2,
-.email-root h3,
-.email-root h4,
-.email-root h5,
-.email-root h6 {
-	margin: 1.2em 0 0.6em;
-	font-weight: 600;
-	line-height: 1.25;
-}
-
-.email-root h1 {
-	font-size: 1.375rem;
-}
-
-.email-root h2 {
-	font-size: 1.25rem;
-}
-
-.email-root h3 {
-	font-size: 1.125rem;
-}
-
-.email-root h4,
-.email-root h5,
-.email-root h6 {
-	font-size: 1rem;
-}
-
-.email-root ul,
-.email-root ol {
-	margin: 0.5rem 0 0.85rem;
-	padding-left: 1.5rem;
-}
-
-.email-root li {
-	margin: 0.25rem 0;
-}
-
-.email-root a {
-	color: #2563eb;
-	text-decoration: none;
-	overflow-wrap: anywhere;
-}
-
-.email-root a:hover {
-	text-decoration: underline;
-}
-
-.email-root img,
-.email-root video,
-.email-root canvas,
-.email-root svg {
-	height: auto !important;
-	max-width: 100% !important;
-}
-
+/* Constrain images without changing table and cell dimensions. */
 .email-root img {
-	object-fit: contain;
+    max-width: 100%;
 }
 
-.email-root iframe {
-	max-width: 100% !important;
-}
-
-.email-root table {
-	width: auto;
-	max-width: 100% !important;
-	border-collapse: collapse;
-}
-
-.email-root td,
-.email-root th {
-	max-width: 100%;
-	overflow-wrap: anywhere;
-}
-
-.email-root pre,
-.email-root code,
-.email-root kbd,
-.email-root samp {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-
-.email-root pre {
-	max-width: 100%;
-	overflow: auto;
-	padding: 0.75rem;
-	border-radius: 0.375rem;
-	background: #0f172a0d;
-	white-space: pre-wrap;
-	word-break: break-word;
-}
-
-.email-root hr {
-	height: 1px;
-	margin: 1rem 0;
-	border: 0;
-	border-top: 1px solid var(--border);
-	opacity: 0.7;
-}
-
-.email-root > hr:first-child {
-	display: none;
-}
-
-.email-root blockquote,
-.email-root blockquote[type="cite"],
-.email-root .gmail_quote,
-.email-root .gmail_quote_container blockquote,
-.email-root .moz-cite-prefix + blockquote,
-.email-root blockquote blockquote {
-	margin: 0.75rem 0 !important;
-	padding: 0.5rem 0.75rem !important;
-	border-left: 3px solid var(--quote-bar) !important;
-	background: var(--quote-bg) !important;
-	color: var(--muted) !important;
-	font-size: 0.92rem !important;
-}
-
+/* Keep long plain-text messages readable. */
 .email-root .kurrier-plain-text {
-	white-space: pre-wrap;
-	word-break: break-word;
+    margin: 0;
+    padding: 16px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: inherit;
+}
+
+/* Allow code blocks to scroll without forcing table reflow. */
+.email-root pre {
+    overflow-x: auto;
 }
 `;
 
@@ -456,7 +327,7 @@ export default function EmailViewer({
 	};
 
 	return (
-		<div className="mb-24 mt-6 min-w-0 overflow-x-hidden">
+		<div className="mb-24 mt-6 min-w-0 overflow-x-auto">
 			{prepared.hasRemoteImages &&
 				!showRemoteImages && (
 					<div className="mb-4 flex flex-col gap-3 rounded-lg border bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
