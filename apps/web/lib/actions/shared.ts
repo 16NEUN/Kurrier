@@ -1,5 +1,5 @@
 import {rlsClient} from "@/lib/actions/clients";
-import {db, users, workspaceMembers, workspaces} from "@db";
+import {db, users, workspaceIdentityMembers, workspaceMembers, workspaces} from "@db";
 import {eq} from "drizzle-orm";
 import {revalidatePath} from "next/cache";
 import {DISTRIBUTION_ACCESS, WorkspaceAccess} from "@distribution";
@@ -25,6 +25,22 @@ export const fetchWorkspaceMembers = async (id: string) => {
         .from(workspaceMembers)
         .leftJoin(users, eq(workspaceMembers.userId, users.id))
         .where(eq(workspaceMembers.workspaceId, id));
+};
+
+export const fetchAdminWorkspaceIdentities = async () => {
+    const workspace = await fetchWorkspace();
+
+    return await db
+        .select({
+            workspace_identity_members: workspaceIdentityMembers,
+            users: {
+                id: users.id,
+                email: users.email
+            },
+        })
+        .from(workspaceIdentityMembers)
+        .leftJoin(users, eq(workspaceIdentityMembers.userId, users.id))
+        .where(eq(workspaceIdentityMembers.workspaceId, workspace.id));
 };
 
 export type FetchWorkspaceMembersResult = Awaited<
