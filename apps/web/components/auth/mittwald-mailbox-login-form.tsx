@@ -69,7 +69,7 @@ export function MittwaldMailboxLoginForm() {
         </form>
 
         <footer className="mt-6 text-center text-xs text-[#7b8994] dark:text-[#adc1cd]">
-          Ihre E-Mails bleiben bei Ihrem bestehenden Mailanbieter.
+          Ihr E-Mail-Postfach bleibt bei Ihrem Mailanbieter. Kurrier synchronisiert Nachrichten zusätzlich für den Webmail-Zugriff.
           <p className="mt-2">
             <a className="underline" href="https://github.com/16NEUN/Kurrier" rel="noreferrer">Open-Source-Informationen</a>
           </p>
