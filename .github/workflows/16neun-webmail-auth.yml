@@ -1,16 +1,26 @@
 name: 16NEUN Webmail Auth Checks
 
 on:
+  # Die Entwicklung nutzt einen eigenen Prüfbranch: nicht jeder Feature-Commit
+  # soll automatisch einen vollständigen Workflow und E-Mails auslösen.
   push:
     branches:
-      - feature/16neun-mittwald-webmail
+      - ci/16neun-webmail
   pull_request:
+    types:
+      - ready_for_review
     branches:
       - main
     paths:
-      - "packages/providers/src/mail/mittwald-imap-auth*"
-      - "packages/providers/src/index.ts"
+      - "apps/web/**"
+      - "packages/**"
+      - "db/init/migrations/**"
+      - "ops/staging/**"
       - ".github/workflows/16neun-webmail-auth.yml"
+
+concurrency:
+  group: 16neun-webmail-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
