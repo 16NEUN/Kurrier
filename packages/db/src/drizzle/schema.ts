@@ -236,6 +236,27 @@ export const users = authSchema.table(
 ).enableRLS();
 
 
+/**
+ * A verified external IMAP mailbox is intentionally distinct from a local
+ * Kurrier user. Never link an existing local administrator by email alone.
+ * The trusted authentication service uses the database-owner connection;
+ * this table has no ordinary-user RLS policies.
+ */
+export const mailboxLoginBindings = authSchema.table(
+  "mailbox_login_bindings",
+  {
+    mailboxAddress: text("mailbox_address").primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [uniqueIndex("ux_mailbox_login_bindings_user_id").on(t.userId)],
+).enableRLS();
+
+
 export const workspaceIdentityMembers = pgTable(
 	"workspace_identity_members",
 	{
