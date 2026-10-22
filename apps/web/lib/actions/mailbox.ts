@@ -1,3 +1,4 @@
+import type { MailboxEntity } from "@db";
 "use server";
 
 import { cache } from "react";
@@ -136,7 +137,7 @@ export const fetchMailbox = cache(
 		]);
 
 		return {
-			activeMailbox,
+			activeMailbox: activeMailbox as MailboxEntity,
 			mailboxList,
 			identity,
 			count: Number(messagesCountRow?.count ?? 0),
