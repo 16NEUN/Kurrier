@@ -110,6 +110,11 @@ try:
         p.chmod(0o600)
     write_private("staging.env", "\n".join(contents) + "\n")
     write_private("postgres-init.sql", sql)
+    # The postgres:18 entrypoint switches to the non-root postgres user
+    # before reading its bind-mounted init SQL. The parent runtime folder
+    # stays root-only (0700) on the host; make just the SQL file readable
+    # inside the isolated database container.
+    (RUNTIME / "postgres-init.sql").chmod(0o644)
     write_private("garage.toml", GARAGE_CONFIG.read_text())
 except Exception:
     print("ERROR: incomplete runtime setup — do not start staging", file=sys.stderr)
