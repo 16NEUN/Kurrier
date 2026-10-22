@@ -54,5 +54,7 @@
   "chooseMailbox": "Postfach auswählen",
   "noMessageSelected": "Keine Nachricht ausgewählt.",
   "mailTitle": "E-Mail",
-  "noSubjectTitle": "Ohne Betreff"
+  "noSubjectTitle": "Ohne Betreff",
+  "emptyInbox": "Der Posteingang ist leer.",
+  "emptyFolder": "Keine Nachrichten in diesem Ordner."
 }
