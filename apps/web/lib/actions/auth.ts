@@ -74,18 +74,18 @@ const applyPendingMigrations = async (
 	);
 };
 
-async function signToken(userId: string) {
+async function signToken(userId: string, lifetimeSeconds = 60 * 60 * 24 * 30) {
 	const { JWT_SECRET } = getServerEnv();
 
 	return new SignJWT({})
 		.setProtectedHeader({ alg: "HS256" })
 		.setSubject(userId)
 		.setIssuedAt()
-		.setExpirationTime("30d")
+		.setExpirationTime(`${lifetimeSeconds}s`)
 		.sign(new TextEncoder().encode(JWT_SECRET));
 }
 
-async function setAuthToken(token: string) {
+async function setAuthToken(token: string, lifetimeSeconds = 60 * 60 * 24 * 30) {
 	const cookieStore = await cookies();
 
 	cookieStore.set("session", token, {
@@ -93,7 +93,7 @@ async function setAuthToken(token: string) {
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "lax",
 		path: "/",
-		maxAge: 60 * 60 * 24 * 30,
+		maxAge: lifetimeSeconds,
 	});
 }
 
@@ -300,9 +300,9 @@ export const getGravatarUrl = async (email: string, size = 80) => {
 	return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`;
 };
 
-export async function createSessionForUser(userId: string) {
-	const token = await signToken(userId);
-	await setAuthToken(token);
+export async function createSessionForUser(userId: string, lifetimeSeconds = 60 * 60 * 24 * 30) {
+	const token = await signToken(userId, lifetimeSeconds);
+	await setAuthToken(token, lifetimeSeconds);
 }
 
 export async function getWorkspaceRedirectUrl(user: typeof users.$inferSelect) {
