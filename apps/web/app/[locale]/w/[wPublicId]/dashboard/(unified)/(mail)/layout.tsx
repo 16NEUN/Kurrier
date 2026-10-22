@@ -11,12 +11,14 @@ import NavUserWrapper from "@/components/ui/dashboards/workspace/nav-user-wrappe
 import { fetchIdentityMailboxList } from "@/lib/actions/mailbox";
 import MailComposerLauncher from "@/components/mailbox/default/composer/mail-composer-launcher";
 import WorkspaceLogo from "@/components/common/workspace-logo";
+import { isMittwaldMailboxCustomer } from "@/lib/mittwald-access";
 
 async function MailSidebar() {
 	await connection();
 
 	const publicConfig = getPublicEnv();
 	const workspacePublicId = await getWorkspacePublicId();
+	const customerMailboxOnly = await isMittwaldMailboxCustomer();
 	const identityMailboxes = await fetchIdentityMailboxList();
 
 	const sendableIdentityMailboxes = identityMailboxes.filter(
@@ -25,6 +27,7 @@ async function MailSidebar() {
 
 	return (
 		<AppSidebar
+			customerMailboxOnly={customerMailboxOnly}
 			workspacePublicId={workspacePublicId}
 			sidebarTopContent={
 				<>
