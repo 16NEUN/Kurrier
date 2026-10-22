@@ -2,14 +2,13 @@ import { randomBytes } from "node:crypto";
 import argon2 from "argon2";
 import {
   db,
-  identities,
   mailboxLoginBindings,
   users,
   workspaceMembers,
   workspaces,
 } from "@db";
 import { eq, sql } from "drizzle-orm";
-import { isValidMailboxAddress } from "@providers/mail/mittwald-imap-auth";
+import { isValidMailboxAddress } from "@providers";
 
 /**
  * Only invoke this AFTER the pinned Mittwald IMAP server has authenticated the
@@ -42,7 +41,7 @@ export async function provisionVerifiedMailboxUser(
     const [existingUser] = await tx
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.email, email))
+      .where(sql`lower(${users.email}) = ${email}`)
       .limit(1);
 
     if (binding) {
