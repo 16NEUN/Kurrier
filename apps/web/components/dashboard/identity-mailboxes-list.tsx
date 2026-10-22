@@ -195,6 +195,17 @@ export default function IdentityMailboxesList({
 	onComplete?: () => void;
 }) {
 	const dict = useOptionalDictionary();
+	// Localize only well-known IMAP folder types; preserve user-created names.
+	const folderNames: Record<MailboxKind, string> = {
+		inbox: dict?.mailbox?.folderInbox ?? TITLE.inbox,
+		sent: dict?.mailbox?.folderSent ?? TITLE.sent,
+		drafts: dict?.mailbox?.folderDrafts ?? TITLE.drafts,
+		archive: dict?.mailbox?.folderArchive ?? TITLE.archive,
+		spam: dict?.mailbox?.folderSpam ?? TITLE.spam,
+		trash: dict?.mailbox?.folderTrash ?? TITLE.trash,
+		outbox: dict?.mailbox?.folderOutbox ?? TITLE.outbox,
+		custom: dict?.mailbox?.folderCustom ?? TITLE.custom,
+	};
 	const pathname = usePathname();
 	const params = useParams() as {
 		identityPublicId?: string;
@@ -227,7 +238,7 @@ export default function IdentityMailboxesList({
 		const Icon = ICON[m.kind] ?? Folder;
 		const slug = m.slug ?? "inbox";
 		const itemLabel =
-			m.kind === "custom" ? (m.name ?? "Mailbox") : TITLE[m.kind];
+			m.kind === "custom" ? (m.name ?? folderNames.custom) : folderNames[m.kind];
 		const href = `/w/${workspacePublicId}/dashboard/mail/${identityPublicId}/${slug}`;
 
 		const isActive =
@@ -245,7 +256,7 @@ export default function IdentityMailboxesList({
 							type="button"
 							onClick={() => setOpen((v) => !v)}
 							className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-sidebar-accent/60"
-							aria-label={open ? "Collapse" : "Expand"}
+							aria-label={open ? (dict?.mailbox?.collapseFolder ?? "Collapse") : (dict?.mailbox?.expandFolder ?? "Expand")}
 						>
 							{open ? (
 								<ChevronDown className="h-3.5 w-3.5" />
