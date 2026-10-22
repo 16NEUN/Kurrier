@@ -88,6 +88,19 @@ services:
         condition: service_healthy
     networks: [stage]
 
+  local-https:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - stage_caddy_data:/data
+      - stage_caddy_config:/config
+    depends_on:
+      - web
+    networks: [stage]
+
   worker:
     build:
       context: ../..
@@ -111,3 +124,5 @@ volumes:
   stage_typesense:
   stage_garage_data:
   stage_garage_meta:
+  stage_caddy_data:
+  stage_caddy_config:
