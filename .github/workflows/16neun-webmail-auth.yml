@@ -1,0 +1,34 @@
+name: 16NEUN Webmail Auth Checks
+
+on:
+  push:
+    branches:
+      - feature/16neun-mittwald-webmail
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "packages/providers/src/mail/mittwald-imap-auth*"
+      - "packages/providers/src/index.ts"
+      - ".github/workflows/16neun-webmail-auth.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  auth-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.0.0"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run offline IMAP auth tests
+        run: pnpm exec tsx --test packages/providers/src/mail/mittwald-imap-auth.test.ts
