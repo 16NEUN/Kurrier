@@ -6,7 +6,7 @@ import { FormState } from "@schema";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createSessionForUser, getWorkspaceRedirectUrl } from "@/lib/actions/auth";
+import { createSessionForUser, getWorkspaceRedirectUrl, initializeProvisionedMailboxWorkspace } from "@/lib/actions/auth";
 import {
   allowMittwaldLoginAttempt,
   isMittwaldLoginEnabledFor,
@@ -65,6 +65,10 @@ export async function loginWithMittwald(
       .limit(1);
 
     if (!user) return { success: false, error: LOGIN_ERROR };
+
+    if (identity.created) {
+      await initializeProvisionedMailboxWorkspace(user.id, identity.workspaceId, email);
+    }
 
     // Short-lived, server-only session; never place Mittwald passwords in JWTs.
     await createSessionForUser(user.id, SESSION_LIFETIME_SECONDS);
