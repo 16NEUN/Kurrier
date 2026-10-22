@@ -74,6 +74,20 @@ const applyPendingMigrations = async (
 	);
 };
 
+/**
+ * Use the existing signup initialization jobs for a provisioned Mittwald
+ * mailbox user. Only invoke after verified IMAP authentication and after its
+ * unique user/workspace mapping is committed.
+ */
+export async function initializeProvisionedMailboxWorkspace(
+  userId: string,
+  workspaceId: string,
+  mailboxEmail: string,
+) {
+  await initProviders(userId, workspaceId);
+  await applyPendingMigrations(userId, workspaceId, mailboxEmail);
+}
+
 async function signToken(userId: string, lifetimeSeconds = 60 * 60 * 24 * 30) {
 	const { JWT_SECRET } = getServerEnv();
 
