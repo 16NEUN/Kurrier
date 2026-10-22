@@ -1,4 +1,5 @@
-import {rlsClient} from "@/lib/actions/clients";
+import {rlsClient, rlsClientForWorkspace} from "@/lib/actions/clients";
+import { requireKurrierPlatformAdministrator } from "@/lib/mittwald-access";
 import {db, users, workspaceIdentityMembers, workspaceMembers, workspaces} from "@db";
 import {eq} from "drizzle-orm";
 import {revalidatePath} from "next/cache";
@@ -13,6 +14,9 @@ export const fetchWorkspace = async () => {
 };
 
 export const fetchWorkspaceMembers = async (id: string) => {
+    await requireKurrierPlatformAdministrator();
+    // Validate membership before performing a privileged database read.
+    await rlsClientForWorkspace(id);
     return await db
         .select({
             workspace_members: workspaceMembers,
@@ -28,6 +32,7 @@ export const fetchWorkspaceMembers = async (id: string) => {
 };
 
 export const fetchAdminWorkspaceIdentities = async () => {
+    await requireKurrierPlatformAdministrator();
     const workspace = await fetchWorkspace();
 
     return await db
