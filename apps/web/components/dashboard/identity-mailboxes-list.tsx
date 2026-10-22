@@ -133,6 +133,7 @@ function IdentityExtraCounts({
 	workspacePublicId: string | undefined;
 	currentSlug: string;
 }) {
+	const dict = useOptionalDictionary();
 	const scheduledDrafts = use(scheduledDraftsPromise);
 	const { threads: snoozedThreads } = use(snoozedThreadsPromise);
 
@@ -157,7 +158,7 @@ function IdentityExtraCounts({
 				>
 					<IconMailFast size={22} />
 					<span className="font-normal text-sm">
-						Scheduled ({scheduledCount})
+						{dict?.mailbox?.scheduledFolder ?? "Scheduled"} ({scheduledCount})
 					</span>
 				</Link>
 			)}
@@ -172,7 +173,7 @@ function IdentityExtraCounts({
 					} flex justify-start gap-1 w-full p-1.5 items-center`}
 				>
 					<Clock4 size={16} />
-					<span className="font-normal text-sm">Snoozed ({snoozedCount})</span>
+					<span className="font-normal text-sm">{dict?.mailbox?.snoozedFolder ?? "Snoozed"} ({snoozedCount})</span>
 				</Link>
 			)}
 		</>
