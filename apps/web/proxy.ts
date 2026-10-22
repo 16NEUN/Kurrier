@@ -46,6 +46,20 @@ function getRedirectLocale(request: NextRequest) {
 export async function proxy(request: NextRequest) {
 	const pathname = request.nextUrl.pathname;
 
+  // Exact-host, opt-in customer front door. The admin login remains on its
+  // original route and must be restricted separately at the reverse proxy.
+  const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  if (
+    process.env.ENABLE_MITTWALD_MAILBOX_LOGIN === "true" &&
+    host === "mail.16neun.com" &&
+    (request.method === "GET" || request.method === "HEAD") &&
+    (pathname === "/" || pathname === "/distribution")
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/de/auth/mail";
+    return NextResponse.redirect(url);
+  }
+
 	if ((request.method === "GET" || request.method === "HEAD") && /^\/api\/drive\/share\/[A-Za-z0-9_-]{43}\/?$/.test(pathname)) {
 		return NextResponse.next();
 	}
