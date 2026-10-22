@@ -1,3 +1,8 @@
+import { db, mailboxLoginBindings } from "@db";
+import { eq } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getDefaultWorkspacePath, isSignedIn } from "@/lib/actions/auth";
+import { withLocale } from "@/lib/utils";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/dashboards/unified/default/app-sidebar";
 import {getWorkspacePublicId} from "@/lib/actions/clients";
@@ -13,6 +18,24 @@ export default async function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
+  // Customer-only Mittwald sessions cannot open Kurrier's platform panel.
+  // The mail UI is separate from the platform administration.
+  const signedIn = await isSignedIn();
+  if (signedIn) {
+    const [mailboxUser] = await db
+      .select({ userId: mailboxLoginBindings.userId })
+      .from(mailboxLoginBindings)
+      .where(eq(mailboxLoginBindings.userId, signedIn.id))
+      .limit(1);
+    if (mailboxUser) {
+      const inboxPath = await getDefaultWorkspacePath(signedIn);
+      if (!inboxPath.includes("/dashboard/mail/")) {
+        throw new Error("Mailbox is not ready");
+      }
+      redirect(withLocale("de", inboxPath));
+    }
+  }
+
 	const workspacePublicId = await getWorkspacePublicId()
 
 	return (
