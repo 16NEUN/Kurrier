@@ -46,7 +46,7 @@ ON CONFLICT DO NOTHING;
 """
 
 values = {
-    "WEB_URL": "http://127.0.0.1:3011",
+    "WEB_URL": "https://localhost:3443",
     "WEB_PORT": "3000",
     "NITRO_PORT": "3001",
     "POSTGRES_USER": "postgres",
