@@ -76,8 +76,8 @@ on `hostingsrv`; monitor server load.
 From the CloudPC, create an SSH local forwarding tunnel with the already
 verified, individually authorized private key:
 ```powershell
-ssh -i "$env:USERPROFILE\.ssh\id_ed25519_hostingsrv" -o IdentitiesOnly=yes -N `
-  -L 3443:127.0.0.1:3443 admin-ssh@100.99.4.59
+ssh -i "$env:USERPROFILE\.ssh\<authorized-private-key>" -o IdentitiesOnly=yes -N `
+  -L 3443:127.0.0.1:3443 <ssh-user>@<hostingsrv-tailnet-address>
 ```
 
 Open `https://localhost:3443` in the CloudPC browser. This is a **local
