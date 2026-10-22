@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { MittwaldMailboxLoginForm } from "@/components/auth/mittwald-mailbox-login-form";
 
-// Feature flags are read at runtime, never during static prerender.
-export const dynamic = "force-dynamic";
+// Cache Components requires connection() to defer feature checks to runtime.
 
 /** Customer-only route. The existing admin login remains separate. */
-export default function MailLoginPage() {
+export default async function MailLoginPage() {
+  await connection();
   if (
     process.env.ENABLE_MITTWALD_MAILBOX_LOGIN !== "true" ||
     !process.env.MITTWALD_ALLOWED_MAILBOXES?.trim()
