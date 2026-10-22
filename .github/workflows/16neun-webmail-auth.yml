@@ -32,5 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Run offline IMAP auth tests
         run: pnpm exec tsx --test packages/providers/src/mail/mittwald-imap-auth.test.ts
+      - name: Test disabled-by-default IMAP login policy
+        run: pnpm exec tsx --tsconfig apps/web/tsconfig.json --test apps/web/lib/mittwald-login-policy.test.ts
       - name: Typecheck web application
         run: pnpm exec tsc --noEmit --incremental false -p apps/web/tsconfig.json
