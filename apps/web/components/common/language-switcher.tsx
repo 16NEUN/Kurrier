@@ -19,6 +19,7 @@ import { setLocaleServer } from "@/lib/actions/locale";
 import { hasLocale, LOCALES, type Locale } from "@/lib/locale";
 
 const LOCALE_LABELS: Record<Locale, string> = {
+	de: "Deutsch",
 	en: "English",
 	ko: "한국어",
 	"pt-BR": "Português (Brasil)",

@@ -5,7 +5,7 @@ import { join } from "node:path";
 const DICT_DIR = join(__dirname, "..", "apps", "web", "lib", "dictionaries");
 const SOURCE_LOCALE = "en";
 // Locales still being filled in — reported but not a hard failure.
-const PARTIAL_LOCALES = new Set(["ko"]);
+const PARTIAL_LOCALES = new Set(["ko", "de"]);
 
 function keysOf(value: unknown, prefix = ""): string[] {
 	if (value === null || typeof value !== "object" || Array.isArray(value)) {

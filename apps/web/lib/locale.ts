@@ -10,6 +10,7 @@ export const hasLocale = (locale: string): locale is Locale =>
 // uses lowercase, hyphenated locale ids that don't always match our BCP-47
 // locale codes.
 export const DAYJS_LOCALES: Record<Locale, string> = {
+	de: "de",
 	en: "en",
 	"pt-BR": "pt-br",
 	ko: "en",
