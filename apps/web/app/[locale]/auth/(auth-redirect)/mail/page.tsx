@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { MittwaldMailboxLoginForm } from "@/components/auth/mittwald-mailbox-login-form";
 
+// Feature flags are read at runtime, never during static prerender.
+export const dynamic = "force-dynamic";
+
 /** Customer-only route. The existing admin login remains separate. */
 export default function MailLoginPage() {
   if (
