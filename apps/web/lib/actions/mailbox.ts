@@ -1,5 +1,6 @@
-import type { MailboxEntity } from "@db";
 "use server";
+
+import type { MailboxEntity } from "@db";
 
 import { cache } from "react";
 import {getWorkspaceId, rlsClient} from "@/lib/actions/clients";
