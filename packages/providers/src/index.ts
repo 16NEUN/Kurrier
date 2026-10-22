@@ -48,4 +48,4 @@ export * from "./mail/google-client";
 export { SesMailer } from "./mail/ses";
 
 // Optional 16:NEUN IMAP mailbox authentication foundation.
-export { verifyMittwaldImapCredentials } from "./mail/mittwald-imap-auth";
+export { isValidMailboxAddress, verifyMittwaldImapCredentials } from "./mail/mittwald-imap-auth";
