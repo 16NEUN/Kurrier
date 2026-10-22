@@ -14,6 +14,7 @@ import {revalidatePath} from "next/cache";
 import {users} from "@db";
 import {createHash, randomUUID} from "node:crypto";
 import {isSignedIn} from "@/lib/actions/auth";
+import { requireKurrierPlatformAdministrator } from "@/lib/mittwald-access";
 import {cookies} from "next/headers";
 import {redirect} from "next/navigation";
 
@@ -54,6 +55,7 @@ export type FetchWorkspaceIdentitiesResult = Awaited<
 >;
 
 export const workspaceIdentityAssignments = async () => {
+    await requireKurrierPlatformAdministrator();
     const workspace = await fetchWorkspace();
 
     return await db
