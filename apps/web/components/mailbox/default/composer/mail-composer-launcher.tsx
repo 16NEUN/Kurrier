@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import MailComposer from "./mail-composer";
+import { useOptionalDictionary } from "@/components/providers/dictionary-provider";
 
 type MailComposerProps = React.ComponentProps<typeof MailComposer>;
 
@@ -19,6 +20,7 @@ export default function MailComposerLauncher({
                                                  identityMailboxes,
                                              }: MailComposerLauncherProps) {
     const params = useParams();
+    const dict = useOptionalDictionary();
 
     const [open, setOpen] = React.useState(false);
     const [minimized, setMinimized] = React.useState(false);
@@ -59,7 +61,7 @@ export default function MailComposerLauncher({
                 className="w-full justify-start gap-2"
             >
                 <PenLine size={16} />
-                Compose
+                {dict?.mailbox?.compose ?? "Compose"}
             </Button>
 
             {open && (
@@ -81,7 +83,7 @@ export default function MailComposerLauncher({
                         onClick={minimized ? handleRestore : undefined}
                     >
                         <div className="text-sm font-medium">
-                            New message
+                            {dict?.mailbox?.newMessage ?? "New Message"}
                         </div>
 
                         <div
@@ -95,7 +97,7 @@ export default function MailComposerLauncher({
                                     size="icon"
                                     className="h-7 w-7"
                                     onClick={handleMinimize}
-                                    aria-label="Minimize composer"
+                                    aria-label={dict?.mailbox?.minimize ?? "Minimize"}
                                 >
                                     <Minus size={16} />
                                 </Button>
@@ -107,7 +109,7 @@ export default function MailComposerLauncher({
                                 size="icon"
                                 className="h-7 w-7"
                                 onClick={handleClose}
-                                aria-label="Close composer"
+                                aria-label={dict?.mailbox?.close ?? "Close"}
                             >
                                 <X size={16} />
                             </Button>
