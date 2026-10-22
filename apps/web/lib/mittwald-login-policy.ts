@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { Queue } from "bullmq";
+import Redis from "ioredis";
 import { getServerEnv } from "@schema";
 
 const WINDOW_SECONDS = 15 * 60;
@@ -27,20 +27,19 @@ export async function allowMittwaldLoginAttempt(email: string): Promise<boolean>
     .update(email.trim().toLowerCase())
     .digest("hex");
 
-  const queue = new Queue("mittwald-login-limiter", {
-    connection: {
-      host: settings.REDIS_HOST,
-      port: Number(settings.REDIS_PORT),
-      password: settings.REDIS_PASSWORD,
-      connectTimeout: 2500,
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-    },
+  const redis = new Redis({
+    host: settings.REDIS_HOST,
+    port: Number(settings.REDIS_PORT),
+    password: settings.REDIS_PASSWORD,
+    connectTimeout: 2500,
+    maxRetriesPerRequest: 1,
+    enableOfflineQueue: false,
+    lazyConnect: true,
   });
 
   try {
-    const conn = await queue.client;
-    const counts = await conn.eval(
+    await redis.connect();
+    const counts = await redis.eval(
       INCREMENT_SCRIPT,
       2,
       `mail-login:email:${digest}`,
@@ -62,7 +61,7 @@ export async function allowMittwaldLoginAttempt(email: string): Promise<boolean>
   } catch {
     return false;
   } finally {
-    await queue.close().catch(() => undefined);
+    redis.disconnect();
   }
 }
 
