@@ -34,6 +34,28 @@ jobs:
         run: pnpm exec tsx --test packages/providers/src/mail/mittwald-imap-auth.test.ts
       - name: Test disabled-by-default IMAP login policy
         run: pnpm exec tsx --tsconfig apps/web/tsconfig.json --test apps/web/lib/mittwald-login-policy.test.ts
+      - name: Validate staging port isolation
+        shell: bash
+        run: |
+          cp db/example.env /tmp/mail16neun-stage-validation.env
+          printf '\\nSTAGING_ENV_FILE=/tmp/mail16neun-stage-validation.env\\nSTAGING_RUNTIME_DIR=/tmp\\n' >> /tmp/mail16neun-stage-validation.env
+          docker compose -f ops/staging/compose.yml --env-file /tmp/mail16neun-stage-validation.env config --format json > /tmp/mail16neun-stage-config.json
+          python3 - <<'PY'
+          import json
+          with open("/tmp/mail16neun-stage-config.json") as f:
+              services = json.load(f)["services"]
+          allowed = {"web": ("127.0.0.1", "3011"), "local-https": ("127.0.0.1", "3443")}
+          for name, service in services.items():
+              ports = service.get("ports", [])
+              if name not in allowed:
+                  assert not ports, f"Internal staging service exposes ports: {name}"
+              else:
+                  assert len(ports) == 1, (name, ports)
+                  port = ports[0]
+                  assert (port.get("host_ip"), str(port.get("published"))) == allowed[name]
+          assert "dav" not in services and "baikal-postgres" not in services
+          print("OK: staging services isolated on loopback ports 3011 and 3443")
+          PY
       - name: Typecheck web application
         run: pnpm exec tsc --noEmit --incremental false -p apps/web/tsconfig.json
 
