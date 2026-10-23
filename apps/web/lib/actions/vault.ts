@@ -11,10 +11,12 @@ import {
 import { currentSession } from "@/lib/actions/auth";
 import { getWorkspaceId } from "@/lib/actions/clients";
 import { revalidatePath } from "next/cache";
+import { requireKurrierPlatformAdministrator } from "@/lib/mittwald-access";
 
 const VAULT_PATH = "/w/[workspaceId]/dashboard/platform/vault";
 
 export async function fetchVaultSecrets() {
+    await requireKurrierPlatformAdministrator();
     const session = await currentSession();
     const workspaceId = await getWorkspaceId();
 
@@ -33,6 +35,7 @@ export type FetchVaultSecretsResult = Awaited<
 >;
 
 export async function revealVaultSecret(id: string) {
+    await requireKurrierPlatformAdministrator();
     const session = await currentSession();
     const workspaceId = await getWorkspaceId();
 
@@ -48,6 +51,7 @@ export async function revealVaultSecret(id: string) {
 }
 
 export async function createVaultSecret(formData: FormData) {
+    await requireKurrierPlatformAdministrator();
     const session = await currentSession();
     const workspaceId = await getWorkspaceId();
 
@@ -76,6 +80,7 @@ export async function updateVaultSecret(
     id: string,
     formData: FormData,
 ) {
+    await requireKurrierPlatformAdministrator();
     const session = await currentSession();
     const workspaceId = await getWorkspaceId();
 
@@ -101,6 +106,7 @@ export async function updateVaultSecret(
 }
 
 export async function deleteVaultSecret(id: string) {
+    await requireKurrierPlatformAdministrator();
     const session = await currentSession();
     const workspaceId = await getWorkspaceId();
 
