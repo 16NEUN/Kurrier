@@ -310,6 +310,7 @@ export async function updateWorkspace(
     formData: FormData
 ): Promise<FormState> {
     return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
         const decodedForm = decode(formData) as Record<string, unknown>;
         const name = String(decodedForm.name ?? "").trim();
         const theme = ThemeNameSchema.parse(decodedForm.theme);
@@ -430,6 +431,7 @@ export async function updateWorkspaceLogo(
     formData: FormData
 ): Promise<FormState> {
     return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
         const user = await isSignedIn();
         const file = formData.get("logo");
 
@@ -554,6 +556,7 @@ export async function removeWorkspaceLogo(
     _formData: FormData,
 ): Promise<FormState> {
     return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
         const user = await isSignedIn();
         if (!user) {
             return { success: false, error: "Not authenticated." };
