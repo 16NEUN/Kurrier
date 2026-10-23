@@ -36,6 +36,7 @@ import {
 	SYSTEM_MAILBOXES,
 } from "@schema";
 import { currentSession, isSignedIn } from "@/lib/actions/auth";
+import { requireKurrierPlatformAdministrator } from "@/lib/mittwald-access";
 import {and, count, eq, sql, gte, desc, sum, countDistinct} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { decode } from "decode-formdata";
@@ -86,6 +87,7 @@ export async function upsertProviderAccount(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const session = await currentSession();
 		const data = decode(formData);
 		const workspaceId = await getWorkspaceId();
@@ -155,6 +157,7 @@ export async function upsertSMTPAccount(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const data = decode(formData);
 		const parsed = SmtpAccountFormSchema.parse(data);
 
@@ -192,6 +195,7 @@ export async function connectCustomEmailProvider(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const credentials = CustomEmailProviderCredentialsSchema.parse(
 			decode(formData),
 		);
@@ -1345,6 +1349,7 @@ export async function addApiKey(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const session = await currentSession();
 		const data = decode(formData);
 		const workspaceId = await getWorkspaceId();
@@ -1402,6 +1407,7 @@ export async function addApiKey(
 }
 
 export const fetchUserAPIKeys = async () => {
+	await requireKurrierPlatformAdministrator();
 	const rls = await rlsClient();
 	const session = await currentSession();
 	const workspaceId = await getWorkspaceId();
@@ -1529,6 +1535,7 @@ export async function addNewVolume(_prev: FormState, formData: FormData) {
 
 
 export const fetchUserWebhooks = async () => {
+	await requireKurrierPlatformAdministrator();
 	const rls = await rlsClient();
 
 	const hookRows = await rls((tx) =>
@@ -1553,6 +1560,7 @@ export async function addWebhook(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const data = decode(formData);
 		const insertPayload = {
 			url: data.url,
@@ -1579,6 +1587,7 @@ export const deleteWebhook = async (
 	_prev: FormState,
 	formData: FormData,
 ): Promise<FormState> => {
+	await requireKurrierPlatformAdministrator();
 	return handleAction(async () => {
 		const data = decode(formData);
 		const rls = await rlsClient();
@@ -2034,6 +2043,7 @@ export async function saveGoogleOAuthConfig(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const data = decode(formData);
 
 		const clientId = String(data.clientId ?? "").trim();
@@ -2110,6 +2120,7 @@ export async function saveMailtrapCredentials(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const data = decode(formData);
 
 		const providerId = String(data.providerId || "").trim();
@@ -2304,6 +2315,7 @@ export async function saveCustomEmailProvider(
 	formData: FormData,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const data = decode(formData);
 
 		const name = String(data.name ?? "").trim();
@@ -2433,6 +2445,7 @@ export async function deleteCustomEmailProvider(
 	providerId: string,
 ): Promise<FormState> {
 	return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
 		const providers = await fetchCustomEmailProviders();
 
 		const nextProviders = providers.filter(
