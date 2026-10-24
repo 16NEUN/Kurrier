@@ -1,0 +1,83 @@
+name: 16NEUN Webmail Auth Checks
+
+on:
+  # Die Entwicklung nutzt einen eigenen Prüfbranch: nicht jeder Feature-Commit
+  # soll automatisch einen vollständigen Workflow und E-Mails auslösen.
+  push:
+    branches:
+      - ci/16neun-webmail
+  pull_request:
+    types:
+      - ready_for_review
+    branches:
+      - main
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "db/init/migrations/**"
+      - "ops/staging/**"
+      - ".github/workflows/16neun-webmail-auth.yml"
+
+concurrency:
+  group: 16neun-webmail-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  auth-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "10.0.0"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.20.0"
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run offline IMAP auth tests
+        run: pnpm exec tsx --test packages/providers/src/mail/mittwald-imap-auth.test.ts
+      - name: Test disabled-by-default IMAP login policy
+        run: pnpm exec tsx --tsconfig apps/web/tsconfig.json --test apps/web/lib/mittwald-login-policy.test.ts
+      - name: Verify mailbox relogin and admin route separation
+        run: pnpm exec tsx --test apps/web/lib/mittwald-login-routing.test.ts
+      - name: Validate staging port isolation
+        shell: bash
+        run: |
+          cp db/example.env /tmp/mail16neun-stage-validation.env
+          cat >> /tmp/mail16neun-stage-validation.env <<'EOF'
+          STAGING_ENV_FILE=/tmp/mail16neun-stage-validation.env
+          STAGING_RUNTIME_DIR=/tmp
+          EOF
+          docker compose -f ops/staging/compose.yml --env-file /tmp/mail16neun-stage-validation.env config --format json > /tmp/mail16neun-stage-config.json
+          python3 - <<'PY'
+          import json
+          with open("/tmp/mail16neun-stage-config.json") as f:
+              services = json.load(f)["services"]
+          allowed = {"web": ("127.0.0.1", "3011"), "local-https": ("127.0.0.1", "3443")}
+          for name, service in services.items():
+              ports = service.get("ports", [])
+              if name not in allowed:
+                  assert not ports, f"Internal staging service exposes ports: {name}"
+              else:
+                  assert len(ports) == 1, (name, ports)
+                  port = ports[0]
+                  assert (port.get("host_ip"), str(port.get("published"))) == allowed[name]
+          assert "dav" not in services and "baikal-postgres" not in services
+          print("OK: staging services isolated on loopback ports 3011 and 3443")
+          PY
+      - name: Typecheck web application
+        run: pnpm exec tsc --noEmit --incremental false -p apps/web/tsconfig.json
+
+  web-docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build 16NEUN Webmail web image (no push)
+        run: docker build --file apps/web/Dockerfile --tag mail16neun-web:ci .

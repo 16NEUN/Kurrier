@@ -236,7 +236,26 @@ async function loadPl(): Promise<Dictionary> {
 	} as Dictionary;
 }
 
+
+/** German is built incrementally; untranslated namespaces fall back to English. */
+async function loadDe(): Promise<Dictionary> {
+  const en = await loadEn();
+  const [auth, common, mailbox] = await Promise.all([
+    import("@/lib/dictionaries/de/auth.json").then((m) => m.default),
+    import("@/lib/dictionaries/de/common.json").then((m) => m.default),
+    import("@/lib/dictionaries/de/mailbox.json").then((m) => m.default),
+  ]);
+  return {
+    ...en,
+    locale: "de",
+    auth: { ...en.auth, ...auth },
+    common: { ...en.common, ...common },
+    mailbox: { ...en.mailbox, ...mailbox },
+  } as Dictionary;
+}
+
 const dictionaries: Record<Locale, () => Promise<Dictionary>> = {
+	de: loadDe,
 	en: loadEn,
 	"pt-BR": loadPtBr,
 	ko: loadKo,

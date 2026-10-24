@@ -12,6 +12,12 @@ const COPY: Record<
 	Locale,
 	{ title: string; body: string; retry: string; back: string }
 > = {
+	de: {
+		title: "Ein Fehler ist aufgetreten",
+		body: "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
+		retry: "Erneut versuchen",
+		back: "Zurück zu 16:NEUN Webmail",
+	},
 	en: {
 		title: "Something went wrong",
 		body: "An unexpected error occurred. You can try again, or head back home.",

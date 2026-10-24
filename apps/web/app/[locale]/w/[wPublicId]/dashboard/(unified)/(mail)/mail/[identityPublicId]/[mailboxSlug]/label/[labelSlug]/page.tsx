@@ -1,4 +1,5 @@
 import { fetchIdentityMailboxList, fetchMailbox } from "@/lib/actions/mailbox";
+import type { MailboxEntity } from "@db";
 import {
 	fetchLabelsByIdentityPublicId,
 	fetchMailboxThreadLabels,
@@ -70,7 +71,7 @@ export default async function LabelPage({
 			<WebmailListLabelSearch
 				mailboxThreads={mailboxThreads}
 				publicConfig={publicConfig}
-				activeMailbox={activeMailbox}
+				activeMailbox={activeMailbox as MailboxEntity}
 				workspacePublicId={workspacePublicId}
 				identityPublicId={identityPublicId}
 				mailboxSync={mailboxSync ?? undefined}

@@ -1,5 +1,7 @@
 "use server";
 
+import type { MailboxEntity } from "@db";
+
 import { cache } from "react";
 import {getWorkspaceId, rlsClient} from "@/lib/actions/clients";
 import {
@@ -136,7 +138,7 @@ export const fetchMailbox = cache(
 		]);
 
 		return {
-			activeMailbox,
+			activeMailbox: activeMailbox as MailboxEntity,
 			mailboxList,
 			identity,
 			count: Number(messagesCountRow?.count ?? 0),

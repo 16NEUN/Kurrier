@@ -40,8 +40,8 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Kurrier",
-	description: "Mailbox, but nice.",
+	title: "16:NEUN Webmail",
+	description: "Webmail-Zugang für bestehende E-Mail-Postfächer.",
 };
 
 export default async function RootLayout({

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import MailListHeader from "@/components/mailbox/default/mail-list-header";
 import WebmailListItem from "@/components/mailbox/default/webmail-list-item";
 import { DynamicContextProvider } from "@/hooks/use-dynamic-context";
+import { useOptionalDictionary } from "@/components/providers/dictionary-provider";
 import type {
 	FetchLabelsResult,
 	FetchMailboxThreadLabelsResult,
@@ -38,6 +39,7 @@ export default function WebmailListLabelSearch({
 	labelsByThreadId,
 }: WebListProps) {
 	const params = useParams();
+	const dict = useOptionalDictionary();
 
 	return (
 		<div className={params?.threadId ? "hidden" : ""}>
@@ -50,8 +52,9 @@ export default function WebmailListLabelSearch({
 			>
 				{mailboxThreads.length === 0 ? (
 					<div className="p-4 text-center text-base text-muted-foreground">
-						No messages in{" "}
-						<span className={"lowercase"}>{activeMailbox.name}</span>
+						{activeMailbox.kind === "inbox"
+                            ? (dict?.mailbox?.emptyInbox ?? "Inbox is empty.")
+                            : (dict?.mailbox?.emptyFolder ?? "No messages in this folder.")}
 					</div>
 				) : (
 					<div className="min-w-0 overflow-hidden rounded-xl border bg-background/50">

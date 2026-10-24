@@ -28,6 +28,7 @@ type UnifiedSidebarProps = React.ComponentProps<typeof Sidebar> & {
 	sidebarSectionContent?: React.ReactNode;
 	sidebarTopContent?: React.ReactNode;
 	workspacePublicId?: string;
+	customerMailboxOnly?: boolean;
 };
 
 export function AppSidebar({ ...props }: UnifiedSidebarProps) {
@@ -37,6 +38,7 @@ export function AppSidebar({ ...props }: UnifiedSidebarProps) {
 		sidebarTopContent,
 		workspacePublicId,
 		navUserContent,
+		customerMailboxOnly = false,
 		...restProps
 	} = props;
 	const { setOpen, setOpenMobile } = useSidebar();
@@ -78,7 +80,7 @@ export function AppSidebar({ ...props }: UnifiedSidebarProps) {
 				icon: IconFrame,
 				isActive: false,
 			},
-		],
+		].filter((item) => !customerMailboxOnly || !item.url.includes("/platform")),
 	};
 
 	const pathName = usePathname();
@@ -127,7 +129,7 @@ export function AppSidebar({ ...props }: UnifiedSidebarProps) {
 						<SidebarMenuItem>
 							<SidebarMenuButton size="lg" asChild className="md:h-8 md:p-0">
 								<Link
-									href={`/w/${workspacePublicId}/dashboard/platform/overview`}
+									href={`/w/${workspacePublicId}/dashboard/${customerMailboxOnly ? "mail" : "platform/overview"}`}
 								>
 									<div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
 										<Mail className="size-4" />
@@ -184,7 +186,7 @@ export function AppSidebar({ ...props }: UnifiedSidebarProps) {
 						</SidebarGroupContent>
 					</SidebarGroup>
 					<div className="mt-auto flex items-center justify-center gap-3 border-t px-4 py-3 md:absolute md:bottom-2 md:left-0 md:w-full md:flex-col md:gap-0 md:border-t-0 md:px-0">
-						<Button variant="ghost" size="icon" asChild>
+						{!customerMailboxOnly && <Button variant="ghost" size="icon" asChild>
 							<Link
 								href={`/w/${workspacePublicId}/dashboard/platform/workspace`}
 								aria-label="Workspace settings"
@@ -193,7 +195,7 @@ export function AppSidebar({ ...props }: UnifiedSidebarProps) {
 							>
 								<Settings2 className="size-5" />
 							</Link>
-						</Button>
+						</Button>}
 
 						<div className="flex size-12 items-center justify-center md:rotate-90">
 							<ThemeSwitch onComplete={() => setOpenMobile(false)} />

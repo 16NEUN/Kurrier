@@ -10,6 +10,11 @@ import { hasLocale, type Locale } from "@/lib/locale";
 // DictionaryProvider to read from — so it derives its own locale from the
 // URL and keeps a tiny self-contained copy of these strings instead.
 const COPY: Record<Locale, { title: string; body: string; back: string }> = {
+	de: {
+		title: "Seite nicht gefunden",
+		body: "Diese Seite existiert nicht oder wurde verschoben.",
+		back: "Zurück zu 16:NEUN Webmail",
+	},
 	en: {
 		title: "Page not found",
 		body: "The page you're looking for doesn't exist or may have been moved.",

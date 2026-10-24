@@ -1,0 +1,128 @@
+# 16:NEUN Webmail — isolated, non-public development environment.
+# Run only with a separately generated STAGING_ENV_FILE and STAGING_RUNTIME_DIR.
+# Never point any of these services to the production Kurrier database.
+name: mail16neun-staging
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    volumes:
+      - stage_pg:/var/lib/postgresql
+      - ${STAGING_RUNTIME_DIR:?}/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?} -d ${POSTGRES_DB:?}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [stage]
+
+  redis:
+    image: redis:8.2.2
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?}"]
+    volumes: [stage_redis:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"${REDIS_PASSWORD:?}\" ping | grep -qx PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [stage]
+
+  typesense:
+    image: typesense/typesense:29.0
+    restart: unless-stopped
+    command: ["--data-dir", "/data", "--api-key=${TYPESENSE_API_KEY:?}"]
+    volumes: [stage_typesense:/data]
+    networks: [stage]
+
+  garage:
+    image: dxflrs/garage:v2.3.0
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?}
+      GARAGE_DEFAULT_ACCESS_KEY: ${GARAGE_ACCESS_KEY:?}
+      GARAGE_DEFAULT_SECRET_KEY: ${GARAGE_SECRET_KEY:?}
+      GARAGE_DEFAULT_BUCKET: ${GARAGE_BUCKET:?}
+    volumes:
+      - ${STAGING_RUNTIME_DIR:?}/garage.toml:/etc/garage.toml:ro
+      - stage_garage_data:/var/lib/garage/data
+      - stage_garage_meta:/var/lib/garage/meta
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    networks: [stage]
+
+  migrate:
+    image: postgres:18
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:?}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      PGDATABASE: ${POSTGRES_DB:?}
+    volumes:
+      - ../../db/init:/scripts:ro
+    entrypoint: ["/bin/bash", "/scripts/db-bootstrap.sh"]
+    restart: "no"
+    networks: [stage]
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    image: mail16neun-staging-web:local
+    restart: unless-stopped
+    env_file: ${STAGING_ENV_FILE:?}
+    ports:
+      - "127.0.0.1:3011:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [stage]
+
+  local-https:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - stage_caddy_data:/data
+      - stage_caddy_config:/config
+    depends_on:
+      - web
+    networks: [stage]
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    image: mail16neun-staging-worker:local
+    restart: unless-stopped
+    env_file: ${STAGING_ENV_FILE:?}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [stage]
+
+networks:
+  stage:
+
+volumes:
+  stage_pg:
+  stage_redis:
+  stage_typesense:
+  stage_garage_data:
+  stage_garage_meta:
+  stage_caddy_data:
+  stage_caddy_config:

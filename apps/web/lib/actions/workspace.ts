@@ -14,6 +14,7 @@ import {revalidatePath} from "next/cache";
 import {users} from "@db";
 import {createHash, randomUUID} from "node:crypto";
 import {isSignedIn} from "@/lib/actions/auth";
+import { requireKurrierPlatformAdministrator } from "@/lib/mittwald-access";
 import {cookies} from "next/headers";
 import {redirect} from "next/navigation";
 
@@ -54,6 +55,7 @@ export type FetchWorkspaceIdentitiesResult = Awaited<
 >;
 
 export const workspaceIdentityAssignments = async () => {
+    await requireKurrierPlatformAdministrator();
     const workspace = await fetchWorkspace();
 
     return await db
@@ -261,18 +263,42 @@ export const setWorkspaceDefaultIdentity = async (identityId: string) => {
     if (!workspace) return { success: false };
 
     const rls = await rlsClient();
-    await rls(async (tx) => {
-        await tx.update(identities).set({ sharedWithWorkspace: true }).where(eq(identities.id, identityId));
-        await tx
-            .update(workspaces)
-            .set({ defaultIdentityId: null });
-        await tx
-            .update(workspaces)
-            .set({ defaultIdentityId: identityId })
-            .where(eq(workspaces.id, workspace.id));
-    });
+    return rls(async (tx) => {
+        // Never accept an identity from a different workspace, even when a
+        // caller supplies a guessed identity UUID in a server action.
+        const [selected] = await tx
+            .select({ id: identities.id })
+            .from(identities)
+            .where(
+                and(
+                    eq(identities.id, identityId),
+                    eq(identities.workspaceId, workspace.id),
+                ),
+            )
+            .limit(1);
 
-    return { success: true };
+        if (!selected) return { success: false };
+
+        await tx
+            .update(identities)
+            .set({ sharedWithWorkspace: true })
+            .where(
+                and(
+                    eq(identities.id, selected.id),
+                    eq(identities.workspaceId, workspace.id),
+                ),
+            );
+
+        // A workspace's previous default is replaced by this update.
+        // Never clear defaults in all workspaces.
+        const [updated] = await tx
+            .update(workspaces)
+            .set({ defaultIdentityId: selected.id })
+            .where(eq(workspaces.id, workspace.id))
+            .returning({ id: workspaces.id });
+
+        return { success: Boolean(updated) };
+    });
 };
 
 export const checkDefaultWorkspaceIdentity = async () => {
@@ -308,6 +334,7 @@ export async function updateWorkspace(
     formData: FormData
 ): Promise<FormState> {
     return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
         const decodedForm = decode(formData) as Record<string, unknown>;
         const name = String(decodedForm.name ?? "").trim();
         const theme = ThemeNameSchema.parse(decodedForm.theme);
@@ -428,6 +455,7 @@ export async function updateWorkspaceLogo(
     formData: FormData
 ): Promise<FormState> {
     return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
         const user = await isSignedIn();
         const file = formData.get("logo");
 
@@ -552,6 +580,7 @@ export async function removeWorkspaceLogo(
     _formData: FormData,
 ): Promise<FormState> {
     return handleAction(async () => {
+        await requireKurrierPlatformAdministrator();
         const user = await isSignedIn();
         if (!user) {
             return { success: false, error: "Not authenticated." };

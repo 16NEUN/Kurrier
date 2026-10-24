@@ -21,10 +21,24 @@ const pick = (p: Record<string, string>): MantineColorsTuple =>
 		p["900"],
 	] as unknown as MantineColorsTuple;
 
+// 16:NEUN turquoise palette: consistent in Mantine components and CSS.
+const sixteenNine: Record<string, string> = {
+  "50": "#edfafa",
+  "100": "#d7f2f0",
+  "200": "#afe3e0",
+  "300": "#82d0cc",
+  "400": "#55b8b6",
+  "500": "#39a5a2",
+  "600": "#238f8d",
+  "700": "#187674",
+  "800": "#175e5d",
+  "900": "#144d4c",
+};
+
 const twForTheme: Record<ThemeName, keyof typeof colors> = {
 	indigo: "blue",
 	violet: "violet",
-	teal: "green",
+	teal: "teal",
 	brand: "neutral",
 };
 
@@ -33,7 +47,7 @@ function paletteFor(theme: ThemeName) {
 	const grayTW = colors.zinc as Record<string, string>;
 
 	return {
-		brand: pick(brandTW),
+		brand: theme === "teal" ? pick(sixteenNine) : pick(brandTW),
 		gray: pick(grayTW),
 		// optional: expose a couple extra Tailwind palettes to Mantine components
 		red: pick(colors.red),

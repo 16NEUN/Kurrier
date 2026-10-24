@@ -4,8 +4,8 @@ type CustomConfig = DistributionConfig<{
 }>;
 export const DISTRIBUTION_CONFIG = {
     id: "oss",
-    locales: ["en", "pt-BR", "ko", "pl", "ru"],
-    defaultLocale: "en",
+    locales: ["de", "en", "pt-BR", "ko", "pl", "ru"],
+    defaultLocale: "de",
     features: {
         drive: process.env.DISABLE_DRIVE !== "true",
         localLogin: process.env.DISABLE_LOCAL_LOGIN !== "true",
