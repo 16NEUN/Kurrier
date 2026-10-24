@@ -44,6 +44,8 @@ jobs:
         run: pnpm exec tsx --test packages/providers/src/mail/mittwald-imap-auth.test.ts
       - name: Test disabled-by-default IMAP login policy
         run: pnpm exec tsx --tsconfig apps/web/tsconfig.json --test apps/web/lib/mittwald-login-policy.test.ts
+      - name: Verify mailbox relogin and admin route separation
+        run: pnpm exec tsx --test apps/web/lib/mittwald-login-routing.test.ts
       - name: Validate staging port isolation
         shell: bash
         run: |
