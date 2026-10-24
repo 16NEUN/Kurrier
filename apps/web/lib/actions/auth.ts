@@ -16,6 +16,7 @@ import { updateWorkSpaceContext } from "@/lib/actions/workspace";
 import { DISTRIBUTION_CONFIG } from "@distribution/config";
 import { withLocale } from "@/lib/utils";
 import { kurrierServer } from "@distribution/kurrier-server";
+import { MITTWALD_LOGIN_HINT_COOKIE } from "@/lib/mittwald-login-routing";
 
 const initProviders = async (userId: string, workspaceId: string) => {
 	const { REDIS_PASSWORD, REDIS_HOST, REDIS_PORT } = getServerEnv();
@@ -304,8 +305,11 @@ export const currentSession = async () => {
 
 export const signOut = async (redirectUrl?: string) => {
 	const cookieStore = await cookies();
+	const wasMittwaldMailbox = cookieStore.get(MITTWALD_LOGIN_HINT_COOKIE)?.value === "1";
 	cookieStore.delete("session");
-	redirect(redirectUrl ? redirectUrl : "/auth/login");
+	// Do not clear the harmless login-origin hint: it survives the session and
+	// permits the correct sign-in screen after logout or token expiry.
+	redirect(redirectUrl ? redirectUrl : wasMittwaldMailbox ? "/de/auth/mail" : "/auth/login");
 };
 
 export const getGravatarUrl = async (email: string, size = 80) => {
