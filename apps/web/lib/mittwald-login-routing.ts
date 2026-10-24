@@ -11,7 +11,7 @@ type CustomerLoginRequest = {
 /**
  * Keep the original Kurrier admin login on private management hosts.
  * On the public mail domain always show the Mittwald login; on staging,
- * redirect only browsers that previously used Mittwald authentication.
+ * redirect all customer login URLs on the dedicated local HTTPS staging\n * port. On other private hosts, only redirect browsers with a login hint.
  *
  * This is UX routing, never an authorization or session validity check.
  */
@@ -25,10 +25,11 @@ export function shouldRouteToMittwaldLogin({
 
   const hostname = host.trim().toLowerCase().replace(/:\d+$/, "");
   const publicWebmail = hostname === "mail.16neun.com";
+  const stageWebmail = host.trim().toLowerCase() === "localhost:3443";
   const oldLogin = /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?auth\/login\/?$/i.test(path);
   const entryPage = path === "/" || path === "/distribution";
 
-  if (publicWebmail && (oldLogin || entryPage)) return true;
+  if ((publicWebmail || stageWebmail) && (oldLogin || entryPage)) return true;
 
   return oldLogin && mailboxLoginHint === "1";
 }
