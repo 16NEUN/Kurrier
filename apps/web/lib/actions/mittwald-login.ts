@@ -14,6 +14,7 @@ import {
 import { provisionVerifiedMailboxUser } from "@/lib/mittwald-provisioning";
 import { ensureVerifiedMittwaldMailbox } from "@/lib/mittwald-mailbox-account";
 import { withLocale } from "@/lib/utils";
+import { MITTWALD_LOGIN_HINT_COOKIE } from "@/lib/mittwald-login-routing";
 
 const LOGIN_ERROR = "Die Anmeldung ist fehlgeschlagen. Bitte Zugangsdaten prüfen.";
 const SESSION_LIFETIME_SECONDS = 4 * 60 * 60;
@@ -85,6 +86,16 @@ export async function loginWithMittwald(
     );
 
     if (ready) {
+      // Remember only the type of login (never the mailbox or password).
+      // Keep this harmless routing hint longer than the four-hour session
+      // so a browser refresh after expiry reaches the Mittwald form.
+      (await cookies()).set(MITTWALD_LOGIN_HINT_COOKIE, "1", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
       // After first provision, this resolves to the actual user's inbox.
       target = await getWorkspaceRedirectUrl(user);
     }
