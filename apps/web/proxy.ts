@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { LOCALES } from "@/lib/locale";
 import { updateSession } from "@/lib/supabase/middleware";
 import { DISTRIBUTION_CONFIG } from "@distribution/config";
+import { MITTWALD_LOGIN_HINT_COOKIE, shouldRouteToMittwaldLogin } from "@/lib/mittwald-login-routing";
 
 const locales = LOCALES;
 const defaultLocale = DISTRIBUTION_CONFIG.defaultLocale;
@@ -46,17 +47,23 @@ function getRedirectLocale(request: NextRequest) {
 export async function proxy(request: NextRequest) {
 	const pathname = request.nextUrl.pathname;
 
-  // Exact-host, opt-in customer front door. The admin login remains on its
-  // original route and must be restricted separately at the reverse proxy.
-  const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  // A customer who has used the IMAP login must never land on Kurrier's
+  // separate local-password form when a session expires or they log out.
+  // The public webmail hostname always uses Mittwald; the private admin
+  // hostname retains the original login unless a browser has this hint.
+  const host = request.headers.get("host") ?? "";
   if (
-    process.env.ENABLE_MITTWALD_MAILBOX_LOGIN === "true" &&
-    host === "mail.16neun.com" &&
     (request.method === "GET" || request.method === "HEAD") &&
-    (pathname === "/" || pathname === "/distribution")
+    shouldRouteToMittwaldLogin({
+      host,
+      path: pathname,
+      enabled: process.env.ENABLE_MITTWALD_MAILBOX_LOGIN === "true",
+      mailboxLoginHint: request.cookies.get(MITTWALD_LOGIN_HINT_COOKIE)?.value,
+    })
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/de/auth/mail";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 
